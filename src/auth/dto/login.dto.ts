@@ -16,3 +16,7 @@ export interface Payload {
     id: number;
     email: string;
 }
+
+export interface LogoutDTO {
+    id: number;
+}

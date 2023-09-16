@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { loginDTO } from './dto/login.dto';
+import { LogoutDTO, loginDTO } from './dto/login.dto';
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from './guards/jwt-access.guard';
 import { RefreshTokenDTO } from './dto/refresh-token.dto';
@@ -50,6 +50,15 @@ export class AuthController {
             res.send({newAccessToken});
         } catch (error) {
             throw new UnauthorizedException('invalid refresh token');
+        }
+    }
+    
+    @Post('/logout')
+    async deleteToken(@Body() logoutDTO: LogoutDTO, @Res({passthrough: true}) res: Response): Promise<void> {
+        try {
+            await this.authService.removeRefreshToken(logoutDTO.id);
+        } catch (error) {
+            throw new NotFoundException('로그아웃된 계정입니다.');
         }
     }
 }
