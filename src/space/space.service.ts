@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Space } from './entities/space.entity';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { JoinSpaceStringDTO } from './dto/update.interface';
 import { User } from 'src/user/entities/user.entity';
 import { ResponseSpaceDTO, SpaceDTO, UserNameDTO } from './dto/read.interface';
 import { UserMapppingSpace } from './entities/userMappingSpace.entity';
-import { UserDTO } from 'src/user/dto/read-dto.interface';
+import { UserDTO, UserIdDTO } from 'src/user/dto/read-dto.interface';
 import { NotFoundError } from 'rxjs';
 
 @Injectable()
@@ -105,8 +105,6 @@ export class SpaceService {
             spaceName: req.spaceName,
             logo: req.logo,
         });
-        // console.log(new Space(space.id));
-        // console.log(new User(users.id));
         await this.userMappingSpaceRepository.save({
             space: new Space(space.id),
             user: new User(users.id)
@@ -126,10 +124,39 @@ export class SpaceService {
         // 검증 로직 
         //사용자 ID 가 있는지, 없다는 이야기는 -> 로그인화면으로 가야함. NOT FOUND 
         // ID 가 있는데, 해당 ID 가 USER_MAPPING_SPACE 이테이블의 USER ID 와 맞는지 검증 
+        const space = await this.spaceRepository.findOne({where: {id: id}});
+        const userMappingSpace: UserMapppingSpace[] = await this.userMappingSpaceRepository.find({
+            relations: {
+                space: true,
+                user: true,
+            },
+            where: {
+                space: {
+                    id: space.id,
+                },
+            }});
+        if (userMappingSpace.length <= 0) {
+            throw new NotFoundException('error');
+        }
+        const user: UserIdDTO[] = await this.userRepository.find({
+            relations: {
+                userMapppingSpace: true
+            },
+            where: {
+                    userMapppingSpace: 
+                    {
+                        user: userMappingSpace.map((v) => v.user)
+                    }
+                }
+            })
+        if (!user) {
+            throw new NotFoundException();
+        }
+        
 
         
 
         // 최종 로직 
-        await this.spaceRepository.delete(id);
+        // await this.spaceRepository.delete(id);
     }
 }

@@ -1,6 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { User } from "./user.entity";
-import { Coment } from "./coment.entity";
 
 @Entity()
 export class Board {
@@ -13,9 +12,9 @@ export class Board {
     @Column({nullable: true})
     content: string;
 
+    // @Column({nullable: true})
+    // coment: string[];
+
     @ManyToOne(() => User, (user) => user.board)
     user: User;
-
-    @OneToMany(() => Coment, (coments) => coments.board)
-    coments: Coment[];
 }

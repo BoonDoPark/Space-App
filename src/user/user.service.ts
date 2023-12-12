@@ -1,21 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { BoardDTO, BoardToUserDTO, UserDTO, UsersDTO, userInfoDTO } from './dto/read-dto.interface';
 import { Board } from './entities/board.entity';
-import { Coment } from './entities/coment.entity';
+import * as bcrypt from 'bcrypt';
+
 
 @Injectable()
 export class UserService {
     constructor(
         @InjectRepository(User) private userRepository: Repository<User>,
         @InjectRepository(Board) private boardRepository: Repository<Board>,
-        @InjectRepository(Coment) private comentRepository: Repository<Coment>,
     ) {}
 
-    async findBoardAll(id: number): Promise<BoardToUserDTO> {
+    async findOneUserBoardAll(id: number): Promise<BoardToUserDTO> {
         const userInfo: UserDTO = await this.userRepository.findOneBy({id: id});
+        if (!userInfo) {
+            throw new NotFoundException();
+        }
         const boardAll: BoardDTO[] = await this.boardRepository.find({ 
             relations: {
                 user: true,
@@ -30,7 +33,7 @@ export class UserService {
             return {
                 id: v.id,
                 title: v.title,
-                content: v.content
+                content: v.content,
             }
         })
         return {
@@ -66,25 +69,53 @@ export class UserService {
         return user;
     }
 
-    async createUser(req: User): Promise<void> {
+    async createUser(req: User): Promise<string> {
+        const exist = this.userRepository.findOneBy({email : req.email})
+        if (exist) {
+            return "There is a user with that email already";
+        }
+        const hashedPassword = await bcrypt.hash(req.password, 10);
+        const user = {
+            ...req,
+            password: hashedPassword,
+        }
         await this.userRepository.save(req);
     }
 
     async createBoard(req: Board): Promise<void> {
         await this.boardRepository.save(req);
     }
-    
-    // async createComent(req: Coment): Promise<void> {
-    //     await this.userRepository.save(req);
-    // }
 
     async updateUser(id: number, req: any): Promise<void>{
-        await this.userRepository.update(id, {
-            password: req.password,
-            nickName: req.nickName,
-            userSex: req.userSex,
-            profile: req.profile
-        });
+        try {
+            const user = await this.userRepository.findOne({where: {id}});
+            if (user.id == id) return (user.password = req.password);
+            if (user.id == id) return (user.nickName = req.nickName);
+            if (user.id == id) return (user.userSex = req.userSex);
+            if (user.id == id) return (user.profile = req.profile);
+            await this.userRepository.save({
+                password: user.password,
+                nickName: user.nickName,
+                userSex: user.userSex,
+                profile: user.profile
+            });
+        } catch(error) {
+            throw new Error('is not update');
+        }
+    }
+
+    async updateBoard(id: number, req: any): Promise<void> {
+        try {
+            const board = await this.boardRepository.findOne({where: {id}});
+            if (board.id == id) return (board.title = req.title);
+            if (board.id == id) return (board.content = req.content);
+            await this.boardRepository.save({
+                title: board.title,
+                content: board.content,
+            });
+        } catch(error) {
+            throw new Error('is not update');
+        }
     }
 
     async deleteUser(id: number): Promise<void> {

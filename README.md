@@ -1,6 +1,10 @@
 # Space-App
 
+<<<<<<< Updated upstream
 인프런 사이트를 참조하여 웹 서비스 기반 IT 학습 플랫폼 프로젝트입니다. 사용자들에게 공간이란 것을 제공하여 사용자들 간에 자유로운 소통을 할 수 있습니다. 해당 프로젝트는 백엔드 기획을 진행했습니다.
+=======
+인프런 사이트를 참조하여 웹 서비스 기반 IT 학습 플랫폼 프로젝트입니다. 사용자들에게 공간이란 것을 제공하여 사용자들 간에 자유로운 소통을 할 수 있습니다. 해당 프로젝트는 프론트엔드, 백엔드로 기획을 진행하고 있습니다.
+>>>>>>> Stashed changes
 
 ## 수행한 역할
 
@@ -14,6 +18,7 @@
 - PostgreSQL
 - TypeORM
 
+<<<<<<< Updated upstream
 ## 수행 과정
 
 - 데이터 베이스 모델링
@@ -58,3 +63,23 @@
  
 - Rest API 구현
     - https://www.notion.so/8607f89be7d24002aa3685d4e72fb0e2?pvs=4
+=======
+## APP 구성
+
+- 로그인
+    - jwt 토큰을 활용한 로그인
+        - refresh 토큰을 데이터베이스에 넣는 작업
+    - guard 를 적용한 권한 관리
+
+- 기본 CRUD 기능 구현
+    - User
+        - Board
+            - Content
+    - Auth
+    - Space
+        - ROLE
+
+- oneToMany, ManyToMany
+    - Typeorm 을 활용한 테이블 모델링
+    - Bridge Table 활용한 ManyToMany 
+>>>>>>> Stashed changes

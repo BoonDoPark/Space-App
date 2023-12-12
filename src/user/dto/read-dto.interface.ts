@@ -7,6 +7,10 @@ export interface userInfoDTO {
     profile: string;
 }
 
+export interface UserIdDTO {
+    id: number;
+}
+
 export interface UserDTO {
     id: number;
     email: string;

@@ -6,9 +6,8 @@ import * as bcrypt from 'bcrypt'
 import { Payload } from './dto/login.dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BoardDTO, BoardToUserDTO } from 'src/user/dto/read-dto.interface';
-import { Board } from 'src/user/entities/board.entity';
 import { RefreshTokenDTO } from './dto/refresh-token.dto';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -16,86 +15,61 @@ export class AuthService {
         private jwtService: JwtService,
         private userService: UserService,
         @InjectRepository(User) private userRepository: Repository<User>,
-        @InjectRepository(Board) private boardRepository: Repository<Board>,
     ) {}
 
     async validateUser(email: string, pass: string): Promise<any> {
         const user = await this.userService.findOne(email);
         const match = await bcrypt.compare(pass, user.password);
-        if (!user || !match) {
-            throw new UnauthorizedException();
+        if (user && match) {
+            const { password, ...result} = user;
+            return result;
         }
-        const { password, ...data} = user;
-        return data;
+        return null;
     }
 
     async getAccessToken(user: User): Promise<string> {
         const payload: Payload = {
-            id: user.id,
+            sub: user.id,
             email: user.email
         }
-        return this.jwtService.signAsync(payload, {
+        return this.jwtService.sign(payload, {
             secret: `${process.env.ACCESS_TOKEN_SECRET_KEY}`,
-            expiresIn: '15m',
+            expiresIn: '60s',
         });
     }
 
     async getRefreshToken(user: User): Promise<string> {
         const payload: Payload = {
-            id: user.id,
+            sub: user.id,
             email: user.email
         }
-        return this.jwtService.signAsync(
-            {id: payload.id},
-                {
-                    secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}`,
-                    expiresIn: '2d',
-                });
+        return this.jwtService.sign(payload,{
+            secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}`,
+            expiresIn: '7d',
+        });
     }
 
-    async setRefreshToken(refreshToken: string, id: number): Promise<void> {
+    async setRefreshToken(id: number, refreshToken: string, res: Response): Promise<void> {
+        res.setHeader('Set-Cookie', 'refresh_token=' + refreshToken);
+        // res.cookie('refresh_token', refreshToken, {
+        //     httpOnly: true,
+        // });
         await this.userRepository.update(id, {
             refreshToken: refreshToken,
-        })
+        });
     }
 
-    async profile(payload: Payload): Promise<BoardToUserDTO> {
-        const user = await this.userRepository.findOneBy({id: payload.id});
-        if (!user) {
-            throw new NotFoundException(`Not found ${payload.id}`);
-        }
-        const boardAll: BoardDTO[] = await this.boardRepository.find({ 
-            relations: {
-                user: true,
-            },
-            where: {
-                user: {
-                    id: user.id,
-                }
-            }});
-
-        const parseBoardAll = boardAll.map((v) => {
-            return {
-                id: v.id,
-                title: v.title,
-                content: v.content
-            }
-        })
-        return {
-            user: {
-                id: user.id,
-                email: user.email,
-                nickName: user.nickName,
-                userSex: user.userSex,
-                profile: user.profile
-            },
-            board: parseBoardAll
-        }
+    async login(email: string, pass: string, res: Response): Promise<any> {
+        const user = await this.validateUser(email, pass);
+        const access_token = await this.getAccessToken(user);
+        const refresh_token = await this.getRefreshToken(user);
+        await this.setRefreshToken(user.id, refresh_token, res);
+        return res.status(200).send(access_token)
     }
 
     async refreshAccessToken(refreshTokenDTO: RefreshTokenDTO): Promise<{ accessToken: string }> {
         const { refresh_token } = refreshTokenDTO;
-        const decodedRefreshToken = this.jwtService.verify(refresh_token, { secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}`} ) as Payload;
+        const decodedRefreshToken = this.jwtService.verify(refresh_token, { secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}`}) as Payload;
         const user = await this.userService.findOne(decodedRefreshToken.email);
         if (!user) {
             throw new UnauthorizedException('not found user');
@@ -106,8 +80,8 @@ export class AuthService {
         return {accessToken};
     }
 
-    async removeRefreshToken(id: number): Promise<any> {
-        return await this.userRepository.update(id, {
+    async removeRefreshToken(id: number): Promise<void> {
+        await this.userRepository.update(id, {
             refreshToken: null,
         });
     }

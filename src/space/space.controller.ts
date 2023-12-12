@@ -3,9 +3,7 @@ import { SpaceService } from './space.service';
 import { Space } from './entities/space.entity';
 import { JoinSpaceStringDTO } from './dto/update.interface';
 import { AcceptCourseRequestDTO, ResponseSpaceDTO, SpaceDTO, UserNameDTO } from './dto/read.interface';
-import { UserMapppingSpace } from './entities/userMappingSpace.entity';
-import { User } from 'src/user/entities/user.entity';
-import { AuthGuards } from 'src/auth/guards/auth.guard';
+// import { AuthGuards } from 'src/auth/guards/auth.guard';
 import { AuthUser } from 'src/auth/user.decorator';
 
 @Controller('space')
@@ -18,9 +16,10 @@ export class SpaceController {
     async findAll(): Promise<SpaceDTO[]> {
         return await this.spaceService.findAll();
     }
+    
     // 게시글 UID 
     @Get(':id')
-    async viewpace(@Param('id') id: number): Promise<ResponseSpaceDTO> {
+    async viewspace(@Param('id') id: number): Promise<ResponseSpaceDTO> {
         
         /**
          * 게시글을 수정 혹은 삭제를 하기 위해서 
@@ -40,7 +39,7 @@ export class SpaceController {
         await this.spaceService.createSpace(req);
     }
 
-    @UseGuards(AuthGuards)
+    // @UseGuards(AuthGuards)
     @Post('insert')
     async insertSpace(@Body() req: Space, @AuthUser('id') id: number): Promise<void> {
         console.log('---------------')

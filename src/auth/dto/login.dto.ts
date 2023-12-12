@@ -13,7 +13,7 @@ export class CreateUserDto {
 }
 
 export interface Payload {
-    id: number;
+    sub: number;
     email: string;
 }
 

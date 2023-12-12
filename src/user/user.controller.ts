@@ -1,20 +1,29 @@
-import { Controller, Delete, Param, Post, Put, Get, Body, Patch } from '@nestjs/common';
+import { Controller, Delete, Param, Post, Put, Get, Body, Patch, UseGuards, Req, Request } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
 import { BoardDTO, BoardToUserDTO, UserDTO, UsersDTO } from './dto/read-dto.interface';
 import { Board } from './entities/board.entity';
-import { Coment } from './entities/coment.entity';
-import * as bcrypt from 'bcrypt';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-access.guard';
+import { AuthUser } from 'src/auth/user.decorator';
+import { Payload } from 'src/auth/dto/login.dto';
 
 @Controller('user')
 export class UserController {
     constructor(
         private userService: UserService,
     ) {}
-    
-    @Get('board/:id')
-    async getAllBoards(@Param('id') id: number): Promise<BoardToUserDTO> {
-        return this.userService.findBoardAll(id)
+
+    @Get('/test')
+    @UseGuards(JwtAuthGuard)
+    async test(@Req() req: any) {
+        console.log(req.user);
+    }
+
+    @Get('/info')
+    @UseGuards(JwtAuthGuard)
+    async getAllBoards(@Req() req: any): Promise<BoardToUserDTO> {
+        console.log(req.user);
+        return this.userService.findOneUserBoardAll(req.user.userId);
     }
 
     @Get('/fetchList')
@@ -24,24 +33,13 @@ export class UserController {
 
     @Post()
     async createUser(@Body() req: User): Promise<void> {
-        const hashedPassword = await bcrypt.hash(req.password, 10);
-        const user = {
-            ...req,
-            password: hashedPassword,
-        }
-
-        await this.userService.createUser(user);
+        await this.userService.createUser(req);
     }
 
     @Post('/board')
     async createBoard(@Body() req: Board): Promise<void> {
         await this.userService.createBoard(req);
     }
-
-    // @Post('coment')
-    // async createComent(@Body() req: Coment): Promise<void> {
-    //     await this.userService.createComent(req);
-    // }
 
     @Delete('delete/:id')
     async delete(@Param('id') id: number): Promise<void> {
@@ -50,6 +48,11 @@ export class UserController {
 
     @Patch('update/:id')
     async update(@Param('id') id: number, @Body() req: User): Promise<void> {
-        await this.userService.updateUser(id, req)
+        await this.userService.updateUser(id, req);
+    }
+
+    @Patch('board/:id')
+    async updateBoard(@Param('id') id: number, @Body() req: User): Promise<void> {
+        
     }
 }
