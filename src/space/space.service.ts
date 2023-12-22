@@ -31,7 +31,7 @@ export class SpaceService {
         return spaceAll;
     }
 
-    async viewSpace(spaceId: number): Promise<ResponseSpaceDTO> {
+    async viewSpace(spaceId: number, userId: number): Promise<ResponseSpaceDTO> {
         const spaceInfo: SpaceDTO = await this.spaceRepository.findOneBy({id: spaceId});
         const userMappingSpace: UserMapppingSpace[] = await this.userMappingSpaceRepository.find({
             relations: {
@@ -42,9 +42,12 @@ export class SpaceService {
                 space: {
                     id: spaceInfo.id,
                 },
+                user: {
+                    id: userId,
+                }
             }});
         if (userMappingSpace.length <= 0) {
-            throw new NotFoundException('error');
+            throw new NotFoundException();
         }
         
         const users: UserDTO[] = await this.userRepository.find({
@@ -55,9 +58,9 @@ export class SpaceService {
                     userMapppingSpace: 
                     {
                         user: userMappingSpace.map((v) => v.user)
-                    }
+                    },
                 }
-            })
+            });
 
         const parseUserAll = users.map((value) => {
             return {
@@ -67,6 +70,7 @@ export class SpaceService {
                 profile: value.profile
             }
         })
+
         return {
             space: {
                 id: spaceInfo.id,
@@ -83,14 +87,16 @@ export class SpaceService {
             user: new User(userId)});
     }
 
-    async createSpace(req: Space): Promise<void> {
-        await this.spaceRepository.save(req);
-    }
+    // async createSpace(req: Space): Promise<void> {
+    //     await this.spaceRepository.save(req);
+    // }
 
-    async insertSpace(req: Space, userUid: number): Promise<void> {
+    async createSpace(req: Space, userUid: number): Promise<void> {
         const user = await this.userRepository.findOneBy({id: userUid});
         const space = await this.spaceRepository.save({
-            spaceName: req.spaceName
+            id: req.id,
+            spaceName: req.spaceName,
+            logo: req.logo
         });
         await this.userMappingSpaceRepository.save({
             user: new User(user.id),
@@ -98,18 +104,18 @@ export class SpaceService {
         })
     }
 
-    async create(req: Space, user: UserNameDTO): Promise<void> {
-        const users = await this.userRepository.findOneBy({id: user.id});
-        const space = await this.spaceRepository.save({
-            id: req.id,
-            spaceName: req.spaceName,
-            logo: req.logo,
-        });
-        await this.userMappingSpaceRepository.save({
-            space: new Space(space.id),
-            user: new User(users.id)
-        });
-    }
+    // async create(req: Space, user: UserNameDTO): Promise<void> {
+    //     const users = await this.userRepository.findOneBy({id: user.id});
+    //     const space = await this.spaceRepository.save({
+    //         id: req.id,
+    //         spaceName: req.spaceName,
+    //         logo: req.logo,
+    //     });
+    //     await this.userMappingSpaceRepository.save({
+    //         space: new Space(space.id),
+    //         user: new User(users.id)
+    //     });
+    // }
 
     async updateSpace(id: number, req: Space): Promise<void> {
 
@@ -157,6 +163,6 @@ export class SpaceService {
         
 
         // 최종 로직 
-        // await this.spaceRepository.delete(id);
+        await this.spaceRepository.delete(id);
     }
 }
