@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RefreshTokenDTO } from './dto/refresh-token.dto';
 import { Response } from 'express';
+import { UserDTO } from 'src/user/dto/read-dto.interface';
 
 @Injectable()
 export class AuthService {
@@ -15,13 +16,13 @@ export class AuthService {
         private jwtService: JwtService,
         private userService: UserService,
         @InjectRepository(User) private userRepository: Repository<User>,
-    ) {}
+    ) { }
 
     async validateUser(email: string, pass: string): Promise<any> {
         const user = await this.userService.findOne(email);
         const match = await bcrypt.compare(pass, user.password);
         if (user && match) {
-            const { password, ...result} = user;
+            const { password, ...result } = user;
             return result;
         }
         return null;
@@ -43,19 +44,16 @@ export class AuthService {
             sub: user.id,
             email: user.email
         }
-        return this.jwtService.sign(payload,{
+        return this.jwtService.sign(payload, {
             secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}`,
             expiresIn: '7d',
         });
     }
 
     async setRefreshToken(id: number, refreshToken: string, res: Response): Promise<void> {
-        res.setHeader('Set-Cookie', 'refresh_token=' + refreshToken);
-        // res.cookie('refresh_token', refreshToken, {
-        //     httpOnly: true,
-        // });
+        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
         await this.userRepository.update(id, {
-            refreshToken: refreshToken,
+            refreshToken: hashedRefreshToken,
         });
     }
 
@@ -64,23 +62,43 @@ export class AuthService {
         const access_token = await this.getAccessToken(user);
         const refresh_token = await this.getRefreshToken(user);
         await this.setRefreshToken(user.id, refresh_token, res);
-        return res.status(200).send(access_token)
+
+        return {
+            access_token,
+            refresh_token,
+        };
     }
 
-    async refreshAccessToken(refreshTokenDTO: RefreshTokenDTO): Promise<{ accessToken: string }> {
-        const { refresh_token } = refreshTokenDTO;
-        const decodedRefreshToken = this.jwtService.verify(refresh_token, { secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}`}) as Payload;
-        const user = await this.userService.findOne(decodedRefreshToken.email);
-        if (!user) {
-            throw new UnauthorizedException('not found user');
+    async isMachedRefreshToken(refreshToken: string): Promise<UserDTO> {
+        const { email, ...result } = await this.jwtService.verify(refreshToken, { secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}` });
+        if (!email) {
+            throw new BadRequestException();
         }
 
-        const accessToken = await this.getAccessToken(user);
-
-        return {accessToken};
+        const user = await this.userService.findOne(email);
+        const isRefreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
+        if (isRefreshTokenMatches) {
+            return user;
+        }
+        return null;
     }
 
-    async removeRefreshToken(id: number): Promise<void> {
+    // async refreshAccessToken(refreshTokenDTO: RefreshTokenDTO): Promise<string> {
+    //     const { refresh_token } = refreshTokenDTO;
+    //     const decodedRefreshToken = await this.jwtService.verify(refresh_token, { secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}` }) as Payload;
+    //     const user = await this.userService.findOne(decodedRefreshToken.email);
+    //     if (!user) {
+    //         throw new UnauthorizedException('not found user');
+    //     }
+
+    //     const accessToken = await this.getAccessToken(user);
+
+    //     return accessToken;
+    // }
+
+    async removeRefreshToken(id: number, res: Response): Promise<void> {
+        res.clearCookie('refresh_token');
+        res.clearCookie('access_token');
         await this.userRepository.update(id, {
             refreshToken: null,
         });
