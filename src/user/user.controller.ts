@@ -4,8 +4,6 @@ import { User } from './entities/user.entity';
 import { BoardDTO, BoardToUserDTO, UserDTO, UsersDTO } from './dto/read-dto.interface';
 import { Board } from './entities/board.entity';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-access.guard';
-import { AuthUser } from 'src/auth/user.decorator';
-import { Payload } from 'src/auth/dto/login.dto';
 
 @Controller('user')
 export class UserController {
@@ -13,17 +11,10 @@ export class UserController {
         private userService: UserService,
     ) {}
 
-    @Get('/test')
+    @Get('/:id')
     @UseGuards(JwtAuthGuard)
-    async test(@Req() req: any) {
-        console.log(req.user);
-    }
-
-    @Get('/info')
-    @UseGuards(JwtAuthGuard)
-    async getAllBoards(@Req() req: any): Promise<BoardToUserDTO> {
-        console.log(req.user);
-        return this.userService.findOneUserBoardAll(req.user.userId);
+    async getAllBoards(@Param('id') id: number, @Req() req: any): Promise<BoardToUserDTO> {
+        return this.userService.findOneUserBoardAll(id, req.user.userId);
     }
 
     @Get('/fetchList')
