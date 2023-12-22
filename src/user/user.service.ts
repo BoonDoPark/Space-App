@@ -13,54 +13,69 @@ export class UserService {
         @InjectRepository(User) private userRepository: Repository<User>,
         @InjectRepository(Board) private boardRepository: Repository<Board>,
     ) {}
-
-    async findOneUserBoardAll(id: number): Promise<BoardToUserDTO> {
-        const userInfo: UserDTO = await this.userRepository.findOneBy({id: id});
+    
+    async fineOneUser(id: number): Promise<UserDTO> {
+        const userInfo: UserDTO = await this.userRepository.findOneBy({id});
         if (!userInfo) {
             throw new NotFoundException();
         }
-        const boardAll: BoardDTO[] = await this.boardRepository.find({ 
-            relations: {
-                user: true,
-            },
-            where: {
+        return userInfo;
+    }
+    
+    async fineBoardsByUser(userInfo: UserDTO): Promise<BoardDTO[]> {
+        const boards: BoardDTO[] = await this.boardRepository.find(
+            {
+                relations: {
+                    user: true,
+                },
+                where: {
+                    user: {
+                        id: userInfo.id,
+                    }
+                }
+            }
+            )
+            return boards
+        }
+        
+        async findOneUserBoardAll(id: number, userId: number): Promise<BoardToUserDTO> {
+            if (Number(id) !== userId) {
+                throw new UnauthorizedException();
+            }
+            const userInfo = await this.fineOneUser(id);
+            const boards = await this.fineBoardsByUser(userInfo);
+            const parsedBoards = boards.map((v) => {
+                return {
+                    id: v.id,
+                    title: v.title,
+                    content: v.content,
+                }
+            })
+            return {
                 user: {
                     id: userInfo.id,
-                }
-            }});
-
-        const parseBoardAll = boardAll.map((v) => {
-            return {
-                id: v.id,
-                title: v.title,
-                content: v.content,
+                    email: userInfo.email,
+                    nickName: userInfo.nickName,
+                    userSex: userInfo.userSex,
+                    profile: userInfo.profile
+                },
+                board: parsedBoards
             }
-        })
-        return {
-            user: {
-                id: userInfo.id,
-                email: userInfo.email,
-                nickName: userInfo.nickName,
-                userSex: userInfo.userSex,
-                profile: userInfo.profile
-            },
-            board: parseBoardAll
         }
-    }
-
-    async findAll(): Promise<UsersDTO[]> {
-        const users = await this.userRepository.find();
-        const userAll: UsersDTO[] = users.map((v) => {
-            return {
-                id: v.id,
-                nickName: v.nickName,
-                userSex: v.userSex,
-                profile: v.profile,
-            }
-        })
-        return userAll;
-    }
-
+        
+        async findAll(): Promise<UsersDTO[]> {
+            const users = await this.userRepository.find();
+            const userAll: UsersDTO[] = users.map((v) => {
+                return {
+                    id: v.id,
+                    nickName: v.nickName,
+                    userSex: v.userSex,
+                    profile: v.profile,
+                }
+            })
+            return userAll;
+        }
+        
     async findOne(email: string): Promise<User> {
         const user = await this.userRepository.findOneBy({email: email});
         if (!user) {
@@ -89,10 +104,6 @@ export class UserService {
     async updateUser(id: number, req: any): Promise<void>{
         try {
             const user = await this.userRepository.findOne({where: {id}});
-            if (user.id == id) return (user.password = req.password);
-            if (user.id == id) return (user.nickName = req.nickName);
-            if (user.id == id) return (user.userSex = req.userSex);
-            if (user.id == id) return (user.profile = req.profile);
             await this.userRepository.save({
                 password: user.password,
                 nickName: user.nickName,
@@ -107,8 +118,6 @@ export class UserService {
     async updateBoard(id: number, req: any): Promise<void> {
         try {
             const board = await this.boardRepository.findOne({where: {id}});
-            if (board.id == id) return (board.title = req.title);
-            if (board.id == id) return (board.content = req.content);
             await this.boardRepository.save({
                 title: board.title,
                 content: board.content,
