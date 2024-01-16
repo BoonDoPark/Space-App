@@ -35,7 +35,7 @@ export class AuthService {
         }
         return this.jwtService.sign(payload, {
             secret: `${process.env.ACCESS_TOKEN_SECRET_KEY}`,
-            expiresIn: '60s',
+            expiresIn: '30m',
         });
     }
 
@@ -50,18 +50,18 @@ export class AuthService {
         });
     }
 
-    async setRefreshToken(id: number, refreshToken: string, res: Response): Promise<void> {
+    async setRefreshToken(id: number, refreshToken: string): Promise<void> {
         const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
         await this.userRepository.update(id, {
             refreshToken: hashedRefreshToken,
         });
     }
 
-    async login(email: string, pass: string, res: Response): Promise<any> {
+    async login(email: string, pass: string): Promise<any> {
         const user = await this.validateUser(email, pass);
         const access_token = await this.getAccessToken(user);
         const refresh_token = await this.getRefreshToken(user);
-        await this.setRefreshToken(user.id, refresh_token, res);
+        await this.setRefreshToken(user.id, refresh_token);
 
         return {
             access_token,
