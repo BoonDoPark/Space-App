@@ -17,23 +17,13 @@ export class AuthController {
     @UseGuards(LocalAuthGuard)
     @Post('/login')
     async login(@Body() req: loginDTO, @Res({ passthrough: true }) res: Response): Promise<void> {
-        const { access_token, refresh_token } = await this.authService.login(req.email, req.password, res);
+        const { access_token, refresh_token } = await this.authService.login(req.email, req.password);
         res.setHeader('Authorization', 'Bearer ' + access_token);
         res.cookie("refresh_token", refresh_token, {
             httpOnly: true
         });
         res.send({ access_token })
     }
-
-    @Post('test')
-    @UseGuards(RefreshAuthGuard)
-    async testToken(@Req() req: any, @Res({ passthrough: true }) res: Response): Promise<any> {
-        const {refreshToken, password, ...user} = await req.user;
-        const access_token = await this.authService.getAccessToken(user);
-        res.setHeader('Authorization', 'Bearer ' + access_token);
-        return user;
-    }
-
 
     @Post('/refresh')
     @UseGuards(RefreshAuthGuard)
