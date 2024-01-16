@@ -13,7 +13,7 @@ export class SpaceController {
 
     @Get('/fetchList')
     async findAll(): Promise<SpaceDTO[]> {
-        return await this.spaceService.findAll();
+        return this.spaceService.findSpaces();
     }
     
     // 게시글 UID 
@@ -25,10 +25,17 @@ export class SpaceController {
          * 게시글을 수정 혹은 삭제를 하기 위해서 
          * 해당 게시글의 UID 를 기준으로, 역여있는 사용자 UID 가 요청한 Payload UID 와 같은지 비교
          */
-        return this.spaceService.viewSpace(id ,req.user.sub);
+        return this.spaceService.viewSpace(id, req.user.userId);
     }
 
-    @Post('userinfo')
+    @UseGuards(JwtAuthGuard)
+    @Post('insert')
+    async insertSpace(@Body() spaceInput: Space, @Req() req: any): Promise<void> {
+        await this.spaceService.createSpace(spaceInput, req.user.id);
+    }
+
+    @Post('updateUser')
+    @UseGuards(JwtAuthGuard)
     async updateUser(@Body() req: AcceptCourseRequestDTO): Promise<void> {
         await this.spaceService.updateUserInSpace(req.spaceId, req.userId);
     }
@@ -38,25 +45,14 @@ export class SpaceController {
     //     await this.spaceService.createSpace(req);
     // }
 
-    @UseGuards(JwtAuthGuard)
-    @Post('insert')
-    async insertSpace(@Body() req: Space, @AuthUser('id') id: number): Promise<void> {
-        await this.spaceService.createSpace(req, id);
-    }
-
-    // @Post('test')
-    // async create(@Body() req: Space, @Req() user: UserNameDTO) {
-    //     console.log(user);
-    //     await this.spaceService.create(req, user);
-    // }
-
     @Put('update/:id')
     async update(@Param('id') id: number, @Body() req: Space): Promise<void> {
         await this.spaceService.updateSpace(id, req);
     }
 
     @Delete('delete/:id')
-    async delete(@Param('id') id: number): Promise<void> {
-        await this.spaceService.deleteSpace(id);
+    @UseGuards(JwtAuthGuard)
+    async delete(@Param('id') id: number, @Req() req: any): Promise<void> {
+        await this.spaceService.deleteSpace(id, req.user.id);
     }
 }
