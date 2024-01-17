@@ -6,7 +6,6 @@ import * as bcrypt from 'bcrypt'
 import { Payload } from './dto/login.dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { RefreshTokenDTO } from './dto/refresh-token.dto';
 import { Response } from 'express';
 import { UserDTO } from 'src/user/dto/read-dto.interface';
 
@@ -90,19 +89,6 @@ export class AuthService {
         }
         return null;
     }
-
-    // async refreshAccessToken(refreshTokenDTO: RefreshTokenDTO): Promise<string> {
-    //     const { refresh_token } = refreshTokenDTO;
-    //     const decodedRefreshToken = await this.jwtService.verify(refresh_token, { secret: `${process.env.REFRESH_TOKEN_SECRET_KEY}` }) as Payload;
-    //     const user = await this.userService.findOne(decodedRefreshToken.email);
-    //     if (!user) {
-    //         throw new UnauthorizedException('not found user');
-    //     }
-
-    //     const accessToken = await this.getAccessToken(user);
-
-    //     return accessToken;
-    // }
 
     async removeRefreshToken(id: number, res: Response): Promise<void> {
         res.clearCookie('refresh_token');
