@@ -78,7 +78,7 @@ export class SpaceService {
         return users;
     }
 
-    async viewSpace(spaceId: number, userId: number): Promise<ResponseSpaceDTO> {
+    async findUsersBySpace(spaceId: number, userId: number): Promise<ResponseSpaceDTO> {
         const spaceInfo = await this.findOneSpace(spaceId);
         const users = await this.findUsers(spaceId, userId)
         const parseUserAll = users.map((value) => {
@@ -100,23 +100,6 @@ export class SpaceService {
         }
     }
 
-    async updateUserInSpace(spaceId: number, userId: number): Promise<void> {
-        const space = await this.spaceRepository.findOneBy({id: spaceId})
-        if (!space) {
-            throw new NotFoundException();
-        }
-
-        const user = await this.userRepository.findOneBy({id: userId})
-        if (!user) {
-            throw new NotFoundException();
-        }
-
-        await this.userMappingSpaceRepository.save({
-            space: new Space(spaceId), 
-            user: new User(userId)
-        });
-    }
-
     async createSpace(req: Space, userUid: number): Promise<void> {
         const user = await this.userRepository.findOneBy({id: userUid});
         if (!user) {
@@ -136,60 +119,52 @@ export class SpaceService {
         })
     }
 
-    async updateSpace(id: number, req: Space): Promise<void> {
+    async addUserInSpace(spaceId: number, userId: number): Promise<void> {
+        const space = await this.spaceRepository.findOneBy({id: spaceId})
+        if (!space) {
+            throw new NotFoundException();
+        }
 
+        const user = await this.userRepository.findOneBy({id: userId})
+        if (!user) {
+            throw new NotFoundException();
+        }
+
+        await this.userMappingSpaceRepository.save({
+            space: new Space(spaceId), 
+            user: new User(userId)
+        });
+    }
+
+    async updateSpace(id: number, req: Space): Promise<void> {
         await this.spaceRepository.update(id, {
             spaceName: req.spaceName,
             logo: req.logo,
         });
     }
 
-    async deleteSpace(id: number, userId: number): Promise<void> {
+    async deleteUserInSpace(id: number, userId: number): Promise<void> {
         
         // 검증 로직 
         //사용자 ID 가 있는지, 없다는 이야기는 -> 로그인화면으로 가야함. NOT FOUND 
         // ID 가 있는데, 해당 ID 가 USER_MAPPING_SPACE 이테이블의 USER ID 와 맞는지 검증
         const space = await this.spaceRepository.findOne({where: {id: id}});
+        if (!space) {
+            throw new NotFoundException();
+        }
         const verifiedUser = await this.userRepository.findOne({where: {id:userId}});
         if (!verifiedUser) {
             throw new NotFoundException();
         }
-
-        const userMappingSpace: UserMapppingSpace[] = await this.userMappingSpaceRepository.find({
-            relations: {
-                space: true,
-                user: true,
-            },
-            where: {
-                space: {
-                    id: space.id,
-                },
-        }});
-
-        if (userMappingSpace.length <= 0) {
-            throw new NotFoundException('error');
-        }
-
-        const user: UserIdDTO[] = await this.userRepository.find({
-            relations: {
-                userMapppingSpace: true
-            },
-            where: {
-                    userMapppingSpace: 
-                    {
-                        user: userMappingSpace.map((v) => v.user)
-                    }
-                }
+        
+        const verfiedUserAndSpace = await this.mappingUserAndSpace(space.id, userId)
+        const verfifiedUser = verfiedUserAndSpace.map((v) => {
+            return v.user.id;
         })
 
-        if (!user) {
-            throw new NotFoundException();
+        // 최종 로직
+        if (Number(verfifiedUser) === userId) {
+            await this.userMappingSpaceRepository.delete(verfiedUserAndSpace.map(v => v.id));
         }
-        
-
-        
-
-        // 최종 로직 
-        await this.spaceRepository.delete(id);
     }
 }
