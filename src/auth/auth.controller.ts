@@ -2,7 +2,6 @@ import { Body, Controller, Get, NotFoundException, Post, Req, Res, UnauthorizedE
 import { AuthService } from './auth.service';
 import { LogoutDTO, loginDTO } from './dto/login.dto';
 import { Request, Response } from 'express';
-import { RefreshTokenDTO } from './dto/refresh-token.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { RefreshAuthGuard } from './guards/jwt-refresh.guard';
 import { UserDTO } from 'src/user/dto/read-dto.interface';
