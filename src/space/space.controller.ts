@@ -41,7 +41,6 @@ export class SpaceController {
     }
 
     @Put('update/:id')
-    @UseGuards(JwtAuthGuard)
     async update(@Param('id') id: number, @Body() req: Space): Promise<void> {
         await this.spaceService.updateSpace(id, req);
     }
