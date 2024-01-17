@@ -38,50 +38,29 @@ export class UserService {
             return boards
         }
         
-        async findOneUserBoardAll(id: number, userId: number): Promise<BoardToUserDTO> {
-            if (Number(id) !== userId) {
-                throw new UnauthorizedException();
-            }
-            const userInfo = await this.fineOneUser(id);
-            const boards = await this.fineBoardsByUser(userInfo);
-            const parsedBoards = boards.map((v) => {
-                return {
-                    id: v.id,
-                    title: v.title,
-                    content: v.content,
-                }
-            })
+    async findOneUserBoards(id: number, userId: number): Promise<BoardToUserDTO> {
+        if (Number(id) !== userId) {
+            throw new UnauthorizedException();
+        }
+        const userInfo = await this.fineOneUser(id);
+        const boards = await this.fineBoardsByUser(userInfo);
+        const parsedBoards = boards.map((v) => {
             return {
-                user: {
-                    id: userInfo.id,
-                    email: userInfo.email,
-                    nickName: userInfo.nickName,
-                    userSex: userInfo.userSex,
-                    profile: userInfo.profile
-                },
-                board: parsedBoards
+                id: v.id,
+                title: v.title,
+                content: v.content,
             }
+        })
+        return {
+            user: {
+                id: userInfo.id,
+                email: userInfo.email,
+                nickName: userInfo.nickName,
+                userSex: userInfo.userSex,
+                profile: userInfo.profile
+            },
+            board: parsedBoards
         }
-        
-        async findAll(): Promise<UsersDTO[]> {
-            const users = await this.userRepository.find();
-            const userAll: UsersDTO[] = users.map((v) => {
-                return {
-                    id: v.id,
-                    nickName: v.nickName,
-                    userSex: v.userSex,
-                    profile: v.profile,
-                }
-            })
-            return userAll;
-        }
-        
-    async findOne(email: string): Promise<User> {
-        const user = await this.userRepository.findOneBy({email: email});
-        if (!user) {
-            throw new NotFoundException(`Not found ${email}`);
-        }
-        return user;
     }
 
     async createUser(req: User): Promise<string> {
@@ -96,38 +75,67 @@ export class UserService {
         }
         await this.userRepository.save(req);
     }
+    
+    async findAllUser(): Promise<UsersDTO[]> {
+        const users = await this.userRepository.find();
+        const userAll: UsersDTO[] = users.map((v) => {
+            return {
+                id: v.id,
+                nickName: v.nickName,
+                userSex: v.userSex,
+                profile: v.profile,
+            }
+        })
+        return userAll;
+    }
+    
+    async findOneUserEmail(email: string): Promise<User> {
+        const user = await this.userRepository.findOneBy({email: email});
+        if (!user) {
+            throw new NotFoundException(`Not found ${email}`);
+        }
+        return user;
+    }
+
+    async updateUserInfo(id: number, req: any): Promise<void>{
+        try {
+            const user = await this.userRepository.findOne({where: {id}});
+            if (!user) {
+                throw new Error('Not Found User');
+            }
+
+            await this.userRepository.save({
+                password: req.password,
+                nickName: req.nickName,
+                userSex: req.userSex,
+                profile: req.profile
+            });
+        } catch(error) {
+            throw new Error('is not update');
+        }
+    }
+
+    async deleteUserInfo(id: number): Promise<void> {
+        await this.userRepository.delete(id);
+    }
 
     async createBoard(req: Board): Promise<void> {
         await this.boardRepository.save(req);
     }
 
-    async updateUser(id: number, req: any): Promise<void>{
-        try {
-            const user = await this.userRepository.findOne({where: {id}});
-            await this.userRepository.save({
-                password: user.password,
-                nickName: user.nickName,
-                userSex: user.userSex,
-                profile: user.profile
-            });
-        } catch(error) {
-            throw new Error('is not update');
-        }
-    }
-
     async updateBoard(id: number, req: any): Promise<void> {
         try {
             const board = await this.boardRepository.findOne({where: {id}});
+            if (!board) {
+                throw new Error('Not Found User');
+            }
+
             await this.boardRepository.save({
-                title: board.title,
-                content: board.content,
+                title: req.title,
+                content: req.content,
             });
         } catch(error) {
             throw new Error('is not update');
         }
-    }
-
-    async deleteUser(id: number): Promise<void> {
-        await this.userRepository.delete(id);
     }
 }

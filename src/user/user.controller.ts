@@ -11,20 +11,30 @@ export class UserController {
         private userService: UserService,
     ) {}
 
+    @Post('')
+    async create(@Body() req: User): Promise<void> {
+        await this.userService.createUser(req);
+    }
+
     @Get('/:id')
     @UseGuards(JwtAuthGuard)
-    async getAllBoards(@Param('id') id: number, @Req() req: any): Promise<BoardToUserDTO> {
-        return this.userService.findOneUserBoardAll(id, req.user.userId);
+    async getOneUserBoards(@Param('id') id: number, @Req() req: any): Promise<BoardToUserDTO> {
+        return this.userService.findOneUserBoards(id, req.user.userId);
     }
 
-    @Get('/fetchList')
-    async findAll(): Promise<UsersDTO[]> {
-        return await this.userService.findAll();
+    @Get('/fetch')
+    async getUserList(): Promise<UsersDTO[]> {
+        return await this.userService.findAllUser();
     }
 
-    @Post()
-    async createUser(@Body() req: User): Promise<void> {
-        await this.userService.createUser(req);
+    @Patch('update/:id')
+    async update(@Param('id') id: number, @Body() req: User): Promise<void> {
+        await this.userService.updateUserInfo(id, req);
+    }
+    
+    @Delete('delete/:id')
+    async delete(@Param('id') id: number): Promise<void> {
+        await this.userService.deleteUserInfo(id);
     }
 
     @Post('/board')
@@ -32,18 +42,8 @@ export class UserController {
         await this.userService.createBoard(req);
     }
 
-    @Delete('delete/:id')
-    async delete(@Param('id') id: number): Promise<void> {
-        await this.userService.deleteUser(id);
-    }
-
-    @Patch('update/:id')
-    async update(@Param('id') id: number, @Body() req: User): Promise<void> {
-        await this.userService.updateUser(id, req);
-    }
-
     @Patch('board/:id')
     async updateBoard(@Param('id') id: number, @Body() req: User): Promise<void> {
-        
+        await this.userService.updateBoard(id, req);
     }
 }
