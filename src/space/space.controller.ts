@@ -25,27 +25,23 @@ export class SpaceController {
          * 게시글을 수정 혹은 삭제를 하기 위해서 
          * 해당 게시글의 UID 를 기준으로, 역여있는 사용자 UID 가 요청한 Payload UID 와 같은지 비교
          */
-        return this.spaceService.viewSpace(id, req.user.userId);
+        return this.spaceService.findUsersBySpace(id, req.user.userId);
     }
 
+    @Post('create')
     @UseGuards(JwtAuthGuard)
-    @Post('insert')
-    async insertSpace(@Body() spaceInput: Space, @Req() req: any): Promise<void> {
-        await this.spaceService.createSpace(spaceInput, req.user.id);
+    async create(@Body() spaceInput: Space, @Req() req: any): Promise<void> {
+        await this.spaceService.createSpace(spaceInput, req.user.userId);
     }
 
-    @Post('updateUser')
+    @Post('add')
     @UseGuards(JwtAuthGuard)
     async updateUser(@Body() req: AcceptCourseRequestDTO): Promise<void> {
-        await this.spaceService.updateUserInSpace(req.spaceId, req.userId);
+        await this.spaceService.addUserInSpace(req.spaceId, req.userId);
     }
-    
-    // @Post()
-    // async createSpace(@Body() req: Space): Promise<void> {
-    //     await this.spaceService.createSpace(req);
-    // }
 
     @Put('update/:id')
+    @UseGuards(JwtAuthGuard)
     async update(@Param('id') id: number, @Body() req: Space): Promise<void> {
         await this.spaceService.updateSpace(id, req);
     }
@@ -53,6 +49,6 @@ export class SpaceController {
     @Delete('delete/:id')
     @UseGuards(JwtAuthGuard)
     async delete(@Param('id') id: number, @Req() req: any): Promise<void> {
-        await this.spaceService.deleteSpace(id, req.user.id);
+        await this.spaceService.deleteUserInSpace(id, req.user.userId);
     }
 }
