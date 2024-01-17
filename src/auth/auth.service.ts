@@ -17,9 +17,17 @@ export class AuthService {
         private userService: UserService,
         @InjectRepository(User) private userRepository: Repository<User>,
     ) { }
+    
+    async findOneByEmail(email: string): Promise<User> {
+        const user = await this.userRepository.findOneBy({email: email});
+        if (!user) {
+            throw new NotFoundException(`Not found ${email}`);
+        }
+        return user;
+    }
 
     async validateUser(email: string, pass: string): Promise<any> {
-        const user = await this.userService.findOne(email);
+        const user = await this.findOneByEmail(email);
         const match = await bcrypt.compare(pass, user.password);
         if (user && match) {
             const { password, ...result } = user;
@@ -75,7 +83,7 @@ export class AuthService {
             throw new BadRequestException();
         }
 
-        const user = await this.userService.findOne(email);
+        const user = await this.findOneByEmail(email);
         const isRefreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
         if (isRefreshTokenMatches) {
             return user;
